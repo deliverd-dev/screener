@@ -25,6 +25,34 @@
 
 <main>
   <p class="demo-note" id="demo-note" hidden>This is the hosted demo. Everything runs in your browser: a pretend model answers, and you're the approver. <a href="https://github.com/deliverd-dev/screener" target="_blank" rel="noopener">Get the code</a> to connect a real model and real approvers in Deliverd.</p>
+  <section class="hood" aria-labelledby="hood-title">
+    <div class="hood-head">
+      <h2 id="hood-title">Under the hood, live</h2>
+      <div class="hood-toggles">
+        <label class="row tight"><span>Show the wiring</span><ui-switch id="wiring" aria-label="Show the wiring"><ui-switch-thumb></ui-switch-thumb></ui-switch></label>
+        <label class="row tight"><span>Ghost.exe</span><ui-switch id="haunted" aria-label="Ghost.exe on the page"><ui-switch-thumb></ui-switch-thumb></ui-switch></label>
+      </div>
+    </div>
+    <div class="hood-grid">
+      <article class="maker ui">
+        <p class="maker-name"><a href="https://ui-sdk.dev" target="_blank" rel="noopener">Vercel UI SDK</a> <span class="hint">builds the page, and lets agents use it</span></p>
+        <dl class="stats">
+          <div class="stat"><dt>Components on this page</dt><dd><b id="stat-components">0</b> <span class="hint">of <span id="stat-kinds">0</span> kinds</span></dd></div>
+          <div class="stat"><dt>Agent steps run</dt><dd><b id="stat-steps">0</b></dd></div>
+          <div class="stat"><dt>Steps held for a person</dt><dd><b id="stat-held">0</b> <span class="hint">by <code>data-agent-confirm</code></span></dd></div>
+        </dl>
+      </article>
+      <article class="maker deliverd">
+        <p class="maker-name"><a href="https://deliverd.dev/?utm_source=screener&amp;utm_medium=app&amp;utm_campaign=hackathon" target="_blank" rel="noopener">Deliverd</a> <span class="hint">screens it, and asks a person</span></p>
+        <dl class="stats">
+          <div class="stat"><dt>Checks in this tab</dt><dd><b id="stat-checks">0</b> <span class="hint">at <span id="stat-ms">0</span> ms each</span></dd></div>
+          <div class="stat"><dt>Values swapped for placeholders</dt><dd><b id="stat-placeholders">0</b></dd></div>
+          <div class="stat"><dt>People asked</dt><dd><b id="stat-asked">0</b> <span class="hint"><span id="stat-yes">0</span> yes · <span id="stat-no">0</span> no</span></dd></div>
+        </dl>
+      </article>
+    </div>
+  </section>
+
   <ui-tabs default-value="prompt" class="tabs">
     <ui-tabs-list aria-label="What to check">
       <ui-tabs-tab value="prompt"><button type="button">Check a prompt</button></ui-tabs-tab>

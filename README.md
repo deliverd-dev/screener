@@ -116,6 +116,19 @@ the page through WebMCP under the same rule.
 
 <img src="docs/screenshots/5-agent-asked-twice.png" alt="The agent's activity log: both of its attempts went to a person, who said no" width="820" />
 
+**Under the hood, live.** A strip at the top counts what each part did in your
+tab: the Vercel UI SDK components on the page, the agent steps run and the ones
+held for a person, and Deliverd Screen's checks, placeholders and the people
+asked. Every number is counted in that session. Switch on **Show the wiring**
+and each part of the page is labelled with what built it.
+
+**Ghost.exe is loose.** Our sponsor flies in, then follows the action: it
+bounces at a clean prompt, eats placeholders, shakes at a secret, rushes to the
+approver's phone, and does a loop when something is delivered. Poke it for a
+quip. It never takes a click from the page, it's hidden from screen readers,
+it keeps still if your system asks for reduced motion, and the **Ghost.exe**
+switch sends it away.
+
 ## How it fits together
 
 | File | What it does |
@@ -126,7 +139,8 @@ the page through WebMCP under the same rule.
 | `lib/model.mjs` | Claude, OpenAI or anything OpenAI-compatible, or the pretend model. |
 | `server.mjs` | The page and its routes. Agent steps go to `uiSdkApprovalRoute` from `@deliverd/sdk/adapters` when Deliverd is connected. |
 | `src/history.js` | Reads a chat export in the browser and runs Deliverd Screen's `scanHistory`. |
-| `src/ghost.js`, `src/sponsor.js` | Our sponsor, Ghost.exe, as a text sprite. |
+| `src/ghost.js`, `src/sponsor.js`, `src/haunt.js` | Our sponsor, Ghost.exe: the sprite, and the animation that lets it loose on the page. |
+| `src/showcase.js` | The live counts and the wiring view. |
 
 Safety details, because it's that kind of app:
 
