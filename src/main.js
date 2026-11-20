@@ -14,6 +14,8 @@ import { CATEGORY_NAMES, escapeHtml, ghostSvg, statusLine } from "./sponsor.js";
 import { readExportFile, scanHistory } from "./history.js";
 import { AGENT_PROMPT, SAMPLES } from "./samples.js";
 import { DEMO_CONFIG, demoFetch } from "./demo.js";
+import { createGhost } from "./haunt.js";
+import { renderStats, setWiring, stats } from "./showcase.js";
 
 const $ = (selector) => document.querySelector(selector);
 const HEADERS = { "x-screener": "1" };
@@ -30,6 +32,36 @@ const state = {
 };
 
 // ---------------------------------------------------------------- the sponsor
+
+let ghost = { react() {}, say() {}, enter() {}, setEnabled() {} };
+function savedPref(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? fallback : v === "1";
+  } catch {
+    return fallback;
+  }
+}
+function savePref(key, value) {
+  try {
+    localStorage.setItem(key, value ? "1" : "0");
+  } catch {}
+}
+
+// Ghost.exe reacts to a verdict once you stop typing, not on every key.
+let lastReacted = "empty";
+let reactTimer = 0;
+function ghostOnVerdict(checked) {
+  clearTimeout(reactTimer);
+  const verdict = checked?.verdict ?? "empty";
+  if (verdict === lastReacted) return;
+  reactTimer = setTimeout(() => {
+    lastReacted = verdict;
+    if (verdict === "empty") return;
+    const n = Object.keys(checked.replacements ?? {}).length;
+    ghost.react(verdict, { el: $("#verdict"), n });
+  }, 700);
+}
 
 function drawSponsor() {
   $("#sponsor-ghost").innerHTML = ghostSvg("idle", 28);
@@ -71,11 +103,15 @@ async function check() {
     renderVerdict(null, "");
     return;
   }
+  const began = performance.now();
   const checked = await screen(text, {
     model: state.config.model.label,
     allow: allowance(),
     terms: terms().map((term) => ({ term, label: "Your confidential word" })),
   });
+  stats.checks++;
+  stats.checkMs += performance.now() - began;
+  renderStats();
   if (text !== message()) return; // typed again meanwhile
   checked.reasons = checked.reasons.filter((r) => !/nobody can be asked/i.test(r));
   if (checked.verdict === "ask") checked.reasons.push("Redaction can't fix this, so a person decides whether it may go.");
@@ -114,6 +150,7 @@ function renderVerdict(checked, text) {
 
   renderPreview(checked, text);
   updateSend();
+  ghostOnVerdict(checked);
 }
 
 function renderPreview(checked, text) {
@@ -249,7 +286,10 @@ function onSendEvent(event) {
         : "It's on the approver's phone, on this page. That's you, today.";
     showResult("waiting", "Waiting for a person", where, [], event.url);
     status("Waiting for a person to decide.");
+    stats.asked++;
+    renderStats();
     pollPhone();
+    setTimeout(() => ghost.react("waiting", { el: state.config.mode === "deliverd" ? $("#result") : $("#phone") }), 350);
   } else if (event.event === "sending") {
     showResult("working", `Sending to ${event.model}…`, "", []);
   } else if (event.event === "done") {
@@ -260,11 +300,19 @@ function onSendEvent(event) {
         ["The answer, with your real values put back", event.answer],
       ]);
       status(event.verdict === "redact" || event.decidedBy ? "Sent. The model never saw the real values, and the answer has them back." : "Sent.");
+      if (event.decidedBy) stats.yes++;
+      stats.placeholders += (event.sent?.match(/\[[A-Z_]+_\d+\]/g) ?? []).length;
+      renderStats();
+      ghost.react("sent", { text: event.decidedBy ? "A person said yes. Delivered, real values back in." : undefined });
     } else if (event.status === "declined") {
       showResult("declined", "Not sent: a person said no", `${event.decidedBy ? `${event.decidedBy}: ` : ""}${event.reason || "No reason given."}`, []);
       status("A person said no, so nothing went out.");
+      stats.no++;
+      renderStats();
+      ghost.react("declined", { el: $("#result") });
     } else if (event.status === "blocked") {
       showResult("declined", "Not sent", (event.reasons ?? []).join(" "), []);
+      ghost.react("deny", { el: $("#result") });
     } else if (event.status === "error") {
       showResult("declined", "That didn't work", event.error, []);
     }
@@ -361,7 +409,10 @@ let agentRunning = false;
 const agent = createAgent({
   timeout: 5 * 60_000,
   async allow(step, context) {
+    stats.steps++;
+    renderStats();
     if (!step.confirm) {
+      ghost.react("agent-step", { el: stepTarget(step), text: step.action === "press" ? "The agent pressed Send. Screener checks it again." : "An agent is typing. I'm watching." });
       const sending = step.action === "press" && /send/i.test(step.label ?? "");
       logAgent(
         "allowed",
@@ -372,8 +423,14 @@ const agent = createAgent({
     }
     const entry = logAgent("waiting", describeStep(step), `Marked: “${step.confirm}”. Asking ${approverWords().replace(/,$/, "")}…`);
     status("The agent wants to loosen the rules. A person has to say yes first.");
+    stats.held++;
+    stats.asked++;
+    renderStats();
+    ghost.react("agent-held", { el: stepTarget(step) });
     pollPhone();
     const ok = await toPerson(step, context);
+    ok ? stats.yes++ : stats.no++;
+    renderStats();
     entry.classList.replace("waiting", ok ? "approved" : "declined");
     entry.querySelector(".d").textContent = ok ? "A person said yes, so it ran." : "A person said no. The agent was told, and the setting stayed as it was.";
     return ok;
@@ -382,6 +439,13 @@ const agent = createAgent({
 
 // A browser's own agent (WebMCP) gets the same rule: marked steps ask a person.
 registerTools(agent, { allow: deliverdWebMcpAllow({ endpoint: "/api/ui-approval", headers: HEADERS, fetch: apiFetch }) });
+
+const STEP_TARGETS = { Prompt: "#prompt", "Personal data": "#personal" };
+function stepTarget(step) {
+  if (STEP_TARGETS[step.label]) return $(STEP_TARGETS[step.label]);
+  if (step.action === "press") return $("#send");
+  return $("#allowance");
+}
 
 function describeStep(step) {
   const what = step.label ? `“${step.label}”` : step.component;
@@ -457,6 +521,7 @@ async function onExport(file) {
         .join("")}</ol>` : ""}
       <p class="hint">Counts and titles only. The values stayed where they were, in your file and in this tab.</p>`;
     status(report.withFindings ? "Your chat history has been busy." : "Nothing found in your chat history.");
+    ghost.react("history", { el: out, found: report.withFindings > 0 });
   } catch (error) {
     out.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
   }
@@ -474,6 +539,17 @@ function truncate(s, n) {
 
 async function start() {
   drawSponsor();
+  const haunted = savedPref("screener.ghost", true);
+  ghost = createGhost({ enabled: haunted });
+  $("#haunted").checked = haunted;
+  $("#haunted").addEventListener("checkedchange", () =>
+    setTimeout(() => {
+      const on = $("#haunted").checked === true;
+      savePref("screener.ghost", on);
+      ghost.setEnabled(on);
+    })
+  );
+  $("#wiring").addEventListener("checkedchange", () => setTimeout(() => setWiring($("#wiring").checked === true)));
   try {
     const response = await fetch("/api/config", { headers: HEADERS });
     if (!response.ok || !response.headers.get("content-type")?.includes("json")) throw new Error("no server");
@@ -538,9 +614,11 @@ async function start() {
   });
 
   renderVerdict(null, "");
+  renderStats();
+  ghost.enter();
 }
 
 start();
 
 // For poking at from the console, and for the screenshot script.
-window.screener = { agent, send, runAgent, check };
+window.screener = { agent, send, runAgent, check, get ghost() { return ghost; }, stats };
