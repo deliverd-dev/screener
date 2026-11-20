@@ -101,7 +101,9 @@ export function setWiring(on) {
         // Only the outermost component of a kind, not each part inside it.
         if (el.parentElement?.closest(selector)) continue;
         seen.add(el);
-        const r = el.getBoundingClientRect();
+        // Some components lay out as their contents; measure what's inside.
+        let r = el.getBoundingClientRect();
+        if ((r.width < 4 || r.height < 4) && el.firstElementChild) r = el.firstElementChild.getBoundingClientRect();
         if (r.width < 4 || r.height < 4) continue;
         boxes.push({ x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height, label, who });
       }

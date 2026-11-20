@@ -270,7 +270,7 @@ async function send(asker = "person") {
   if (asker === "agent") {
     const said = {
       sent: ["approved", "Sent", final.decidedBy ? `${final.decidedBy} said yes, and it went with placeholders where it could.` : "Screener let it through."],
-      declined: ["declined", "Not sent", `A person said no${final.reason ? `: “${final.reason}”` : "."} The agent was told.`],
+      declined: ["declined", "Not sent", `A person said no${final.reason ? `: “${final.reason}”.` : "."} The agent was told.`],
       blocked: ["declined", "Not sent", "Screener refused it outright."],
     }[final.status] ?? ["declined", "Not sent", final.error ?? "Something went wrong."];
     logAgent(...said);
