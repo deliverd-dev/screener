@@ -304,3 +304,5 @@ ol.top { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; ma
   .foot { padding: 0 16px 28px; }
   h1 { font-size: 36px; }
 }
+
+.demo-note { margin: 0 0 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 14px; }

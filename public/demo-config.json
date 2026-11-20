@@ -1,0 +1,10 @@
+{
+  "mode": "demo",
+  "model": {
+    "provider": "echo",
+    "label": "the pretend model"
+  },
+  "approvers": [
+    "you, at the approver's phone"
+  ]
+}

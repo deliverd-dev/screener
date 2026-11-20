@@ -12,10 +12,11 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Deliverd } from "@deliverd/sdk";
-import { describeStep, uiSdkApprovalRoute } from "@deliverd/sdk/adapters";
+import { uiSdkApprovalRoute } from "@deliverd/sdk/adapters";
 import { deliverdApprover, playgroundApprover } from "./lib/approvers.mjs";
 import { readSendInput, screenAndSend } from "./lib/gate.mjs";
 import { modelFromEnv } from "./lib/model.mjs";
+import { playgroundUiRoute } from "./lib/ui-route.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 if (existsSync(join(root, ".env"))) process.loadEnvFile(join(root, ".env"));
@@ -87,28 +88,6 @@ async function send(req, res, { approver, model }) {
   res.writeHead(200, { "content-type": "application/x-ndjson", "cache-control": "no-store" });
   await screenAndSend(input, { approver, model, signal: controller.signal, emit: (event) => res.write(`${JSON.stringify(event)}\n`) });
   res.end();
-}
-
-/** The UI SDK approval protocol (the one deliverdAllow speaks), answered at the approver's phone. */
-function playgroundUiRoute(approver) {
-  return async (request) => {
-    let body;
-    try {
-      body = JSON.parse(await request.text());
-    } catch {
-      return Response.json({ allowed: false, reason: "The step could not be read." }, { status: 400 });
-    }
-    const step = body?.step;
-    if (!step || typeof step.confirm !== "string" || typeof step.action !== "string") {
-      return Response.json({ allowed: false, reason: "Only marked steps are asked about." }, { status: 403 });
-    }
-    const described = describeStep(step, { via: body.via });
-    const decision = await approver.ask(
-      { title: described.title, description: described.description, risk: described.risk, asker: body.via === "webmcp" ? "webmcp" : "agent" },
-      { signal: request.signal }
-    );
-    return Response.json(decision.allowed ? { allowed: true, decidedBy: decision.decidedBy } : { allowed: false, reason: decision.reason });
-  };
 }
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json" };
