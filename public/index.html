@@ -24,6 +24,7 @@
 </header>
 
 <main>
+  <p class="demo-note" id="demo-note" hidden>This is the hosted demo. Everything runs in your browser: a pretend model answers, and you're the approver. <a href="https://github.com/deliverd-dev/screener" target="_blank" rel="noopener">Get the code</a> to connect a real model and real approvers in Deliverd.</p>
   <ui-tabs default-value="prompt" class="tabs">
     <ui-tabs-list aria-label="What to check">
       <ui-tabs-tab value="prompt"><button type="button">Check a prompt</button></ui-tabs-tab>
@@ -162,7 +163,7 @@
         <h2>How Screener works</h2>
         <ol>
           <li><strong>It looks, in your browser.</strong> As you type, <a href="https://github.com/deliverd-dev/deliverd-screen" target="_blank" rel="noopener">Deliverd Screen</a> looks for email addresses, phone numbers, card numbers, IBANs, national ID numbers, keys, passwords, special-category words such as a diagnosis, and your own confidential words. It runs in this tab, with no network call.</li>
-          <li><strong>It decides, on the server.</strong> When you press Send, the little server that came with this page checks the same text again. It never takes the page's word for it.</li>
+          <li><strong>It decides again when you press Send.</strong> Run it yourself and the little server that comes with it checks the same text again; it never takes the page's word for it. In the hosted demo there's no server, so the same check runs in your tab.</li>
           <li><strong>Four answers.</strong> <em>Allow</em> sends it as it is. <em>Redact</em> swaps what the model may not receive for placeholders such as [EMAIL_1], and puts the real values back in the answer. <em>Ask</em> puts it to a person first. <em>Deny</em> sends nothing: secrets never go.</li>
           <li><strong>A person decides the hard ones.</strong> In the playground, that's you, at the approver's phone on this page. Connect <a href="https://deliverd.dev/?utm_source=screener&amp;utm_medium=app&amp;utm_campaign=hackathon" target="_blank" rel="noopener">Deliverd</a> and it's the people you name, in Slack, Teams or on their phone, with a record of who said yes. They're told what kind of data it is, never the data.</li>
           <li><strong>Agents ask too.</strong> The page is built with <a href="https://ui-sdk.dev" target="_blank" rel="noopener">Vercel UI SDK</a>, so an agent can use it. The model settings carry a <code>data-agent-confirm</code> mark, so an agent that tries to loosen them waits for a person. A browser's own agent can use the page through WebMCP, under the same rule.</li>

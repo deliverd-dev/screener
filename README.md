@@ -22,7 +22,38 @@ the [Deliverd](https://deliverd.dev/?utm_source=github&utm_medium=readme&utm_cam
 Engineering Team, built with [Deliverd Screen](https://github.com/deliverd-dev/deliverd-screen)
 and [Vercel UI SDK](https://ui-sdk.dev).
 
-## Run it
+**Try it now at [screener.deliverd.dev](https://screener.deliverd.dev)**: the hosted demo runs entirely in
+your browser, with a pretend model and you as the approver. Nothing you type
+leaves the tab.
+
+## Do I need a model?
+
+**No.** Finding and hiding personal data doesn't use a model at all. Deliverd
+Screen finds it with patterns and checks (card numbers must pass the Luhn
+check, IBANs and national ID numbers their check digits), and swaps what it
+finds for placeholders itself. That all happens before anything is sent
+anywhere. With no model attached, a pretend model answers by repeating exactly
+what it was sent, so you see what a real one would have received. If all you
+want is to check a prompt before pasting it into ChatGPT yourself, that's
+enough.
+
+Attach a real model when you want Screener to be the way you talk to AI,
+not just a check before it:
+
+- **The answer comes back whole.** The model sees `[EMAIL_1]`; the answer you
+  read has the real address back in it. Copy a redacted prompt into ChatGPT by
+  hand and you get an answer full of placeholders to fill in yourself.
+- **"Needs a person" means something.** When an approver says yes, the prompt
+  really goes, and the agent demo really gets its answer.
+- **Your model, your rules.** Point it at Claude or OpenAI, at OpenRouter, or at
+  Ollama or LM Studio on your own machine if nothing should leave it at all.
+
+Don't confuse this with a different kind of model: Deliverd Screen can also run
+a small named-entity model on your machine to find people's names, which
+patterns can't. Screener doesn't switch that on yet (see
+[A net, not a certificate](#a-net-not-a-certificate)).
+
+## Run it yourself
 
 You need Node 20.12 or later.
 

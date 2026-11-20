@@ -13,9 +13,13 @@ import { DATA_KINDS, describeCounts, screen } from "@deliverd/screen";
 import { CATEGORY_NAMES, escapeHtml, ghostSvg, statusLine } from "./sponsor.js";
 import { readExportFile, scanHistory } from "./history.js";
 import { AGENT_PROMPT, SAMPLES } from "./samples.js";
+import { DEMO_CONFIG, demoFetch } from "./demo.js";
 
 const $ = (selector) => document.querySelector(selector);
 const HEADERS = { "x-screener": "1" };
+// The page's own routes: its server's, or answered in this tab for the hosted demo.
+let api = (url, init) => fetch(url, init);
+const apiFetch = (url, init) => api(url, init);
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const state = {
@@ -195,7 +199,7 @@ async function send(asker = "person") {
   showResult("working", "Checking it again on the server…", "", []);
   let final = { status: "error", error: "No answer from the server." };
   try {
-    const response = await fetch("/api/send", {
+    const response = await api("/api/send", {
       method: "POST",
       headers: { ...HEADERS, "content-type": "application/json" },
       body: JSON.stringify({ text, allow: allowance(), terms: terms(), asker }),
@@ -295,11 +299,11 @@ function showResult(stateName, title, detail, texts, link) {
 
 let phoneTimer = 0;
 async function pollPhone() {
-  if (state.config.mode !== "playground") return;
+  if (state.config.mode === "deliverd") return;
   clearTimeout(phoneTimer);
   let approvals = [];
   try {
-    approvals = (await (await fetch("/api/approvals", { headers: HEADERS })).json()).approvals ?? [];
+    approvals = (await (await api("/api/approvals", { headers: HEADERS })).json()).approvals ?? [];
   } catch {}
   renderPhone(approvals);
   if (approvals.length || state.sending || agentRunning) phoneTimer = setTimeout(pollPhone, 700);
@@ -334,7 +338,7 @@ function renderPhone(approvals) {
       }
       const answer = async (approve) => {
         el.classList.add("answered");
-        await fetch(`/api/approvals/${a.id}`, {
+        await api(`/api/approvals/${a.id}`, {
           method: "POST",
           headers: { ...HEADERS, "content-type": "application/json" },
           body: JSON.stringify({ approve, note: el.querySelector(".note").value }),
@@ -351,7 +355,7 @@ function renderPhone(approvals) {
 
 // ---------------------------------------------------------------- the agent bridge
 
-const toPerson = deliverdAllow({ endpoint: "/api/ui-approval", headers: HEADERS });
+const toPerson = deliverdAllow({ endpoint: "/api/ui-approval", headers: HEADERS, fetch: apiFetch });
 let agentRunning = false;
 
 const agent = createAgent({
@@ -377,7 +381,7 @@ const agent = createAgent({
 });
 
 // A browser's own agent (WebMCP) gets the same rule: marked steps ask a person.
-registerTools(agent, { allow: deliverdWebMcpAllow({ endpoint: "/api/ui-approval", headers: HEADERS }) });
+registerTools(agent, { allow: deliverdWebMcpAllow({ endpoint: "/api/ui-approval", headers: HEADERS, fetch: apiFetch }) });
 
 function describeStep(step) {
   const what = step.label ? `“${step.label}”` : step.component;
@@ -471,10 +475,20 @@ function truncate(s, n) {
 async function start() {
   drawSponsor();
   try {
-    state.config = await (await fetch("/api/config", { headers: HEADERS })).json();
-  } catch {}
+    const response = await fetch("/api/config", { headers: HEADERS });
+    if (!response.ok || !response.headers.get("content-type")?.includes("json")) throw new Error("no server");
+    state.config = await response.json();
+    // The hosted demo answers /api/config with a static file saying so.
+    if (state.config.mode === "demo") throw new Error("demo");
+  } catch {
+    // No server behind this page: run the demo in the tab.
+    api = demoFetch();
+    state.config = DEMO_CONFIG;
+    $("#demo-note").hidden = false;
+  }
   const { mode, model } = state.config;
-  $("#mode-pill").textContent = mode === "deliverd" ? "Approvals: Deliverd" : "Playground: you're the approver";
+  $("#mode-pill").textContent =
+    mode === "deliverd" ? "Approvals: Deliverd" : mode === "demo" ? "Demo: runs in your browser" : "Playground: you're the approver";
   $("#mode-pill").dataset.mode = mode;
   $("#model-pill").textContent = `Model: ${model.label}`;
   document.querySelectorAll(".model-name").forEach((el) => (el.textContent = model.label));
