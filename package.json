@@ -1,0 +1,27 @@
+{
+  "name": "screener",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ghost.exe presents Screener: see what you're about to tell an AI, before it does. Screens prompts, files and chat history with Deliverd Screen, and asks a person before risky content is sent.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=esm --target=es2022 --minify --sourcemap --outfile=public/app.js && cp node_modules/@ui-sdk/web/browser/web.css public/web.css && node scripts/favicon.mjs",
+    "start": "npm run build && node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@deliverd/screen": "0.3.0",
+    "@deliverd/sdk": "0.41.0",
+    "@ui-sdk/core": "0.1.0-beta.13",
+    "@ui-sdk/web": "0.1.0-beta.13"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

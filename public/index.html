@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Screener</title>
+<meta name="description" content="Ghost.exe presents Screener: see what you're about to tell an AI, before it does. Free and open source, built with Deliverd Screen and Vercel UI SDK." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="/web.css" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<header class="masthead">
+  <div class="titles">
+    <p class="presents"><span class="sponsor-ghost" id="sponsor-ghost" aria-hidden="true"></span>Ghost.exe presents</p>
+    <h1>Screener</h1>
+    <p class="tagline">See what you're about to tell an AI, before it does.</p>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </div>
+  <div class="pills">
+    <span class="pill" id="mode-pill">…</span>
+    <span class="pill" id="model-pill">…</span>
+  </div>
+</header>
+
+<main>
+  <ui-tabs default-value="prompt" class="tabs">
+    <ui-tabs-list aria-label="What to check">
+      <ui-tabs-tab value="prompt"><button type="button">Check a prompt</button></ui-tabs-tab>
+      <ui-tabs-tab value="history"><button type="button">Check your chat history</button></ui-tabs-tab>
+      <ui-tabs-tab value="how"><button type="button">How it works</button></ui-tabs-tab>
+    </ui-tabs-list>
+
+    <ui-tabs-panel value="prompt">
+      <div class="grid">
+        <section class="card compose" aria-labelledby="compose-title">
+          <h2 id="compose-title">Your prompt</h2>
+          <div class="samples" data-agent-hidden>
+            <span class="hint">Try one:</span>
+            <span id="sample-buttons"></span>
+          </div>
+
+          <ui-field name="prompt">
+            <ui-field-label>Prompt</ui-field-label>
+            <ui-textarea auto-resize>
+              <textarea id="prompt" rows="6" placeholder="Paste what you were about to send to ChatGPT, Claude or Copilot…"></textarea>
+            </ui-textarea>
+            <ui-field-description>Checked as you type, in this tab. Nothing leaves your machine until you press Send.</ui-field-description>
+          </ui-field>
+
+          <ui-file-input id="files" multiple max-size="1048576"
+            accept=".txt,.md,.markdown,.csv,.tsv,.json,.jsonl,.log,.env,.yaml,.yml,.xml,.html,.js,.mjs,.ts,.tsx,.py,.rb,.go,.java,.cs,.sql,.ini,.toml,.cfg,.conf,.sh,.eml,.srt,.vtt">
+            <ui-file-input-dropzone class="drop">
+              <p><strong>Drop text files here</strong> to check them too.</p>
+              <p class="hint">Notes, CSVs, logs, code, .env files. Up to 1 MB each.</p>
+              <ui-file-input-trigger><button type="button" class="secondary">Choose files</button></ui-file-input-trigger>
+            </ui-file-input-dropzone>
+            <ui-file-input-list aria-label="Files" class="file-list">
+              <template>
+                <ui-file-input-item>
+                  <span data-file="name"></span>
+                  <span data-file="size" class="hint"></span>
+                  <ui-file-input-item-remove><button type="button" aria-label="Remove">✕</button></ui-file-input-item-remove>
+                </ui-file-input-item>
+              </template>
+            </ui-file-input-list>
+          </ui-file-input>
+          <p class="rejected" id="rejected" hidden></p>
+
+          <section class="allowance" id="allowance"
+            data-agent-confirm="Lets the AI model receive more sensitive data than Screener allows now">
+            <h3>What <span class="model-name">the model</span> may receive</h3>
+            <p class="hint" id="allowance-hint">You can change this yourself. An agent has to ask a person first.</p>
+            <label class="row">
+              <span>Personal data<span class="hint block">Emails, phone numbers, ID numbers, bank details</span></span>
+              <ui-switch id="personal" aria-label="Personal data"><ui-switch-thumb></ui-switch-thumb></ui-switch>
+            </label>
+            <ui-field name="classification">
+              <ui-field-label>Highest classification</ui-field-label>
+              <ui-select id="classification" value="internal">
+                <ui-select-trigger><button type="button"><ui-select-value></ui-select-value></button></ui-select-trigger>
+                <ui-select-content hidden>
+                  <ui-select-item value="public">Public</ui-select-item>
+                  <ui-select-item value="internal">Internal</ui-select-item>
+                  <ui-select-item value="confidential">Confidential</ui-select-item>
+                  <ui-select-item value="restricted">Restricted</ui-select-item>
+                </ui-select-content>
+              </ui-select>
+            </ui-field>
+            <ui-field name="terms">
+              <ui-field-label>Your own confidential words</ui-field-label>
+              <ui-input><input id="terms" placeholder="Client names, code names, deals. Comma-separated." /></ui-input>
+              <ui-field-description>Screener looks for these too. They stay in this tab and on your machine.</ui-field-description>
+            </ui-field>
+          </section>
+
+          <div class="send-row">
+            <ui-button id="send"><button type="button" class="primary">Send to <span class="model-name">the model</span></button></ui-button>
+            <span class="hint" id="send-hint"></span>
+          </div>
+        </section>
+
+        <div class="side">
+          <section class="card verdict" id="verdict" data-verdict="empty" aria-labelledby="verdict-title">
+            <p class="kicker">Verdict</p>
+            <h2 id="verdict-title">Waiting for something to check</h2>
+            <ul class="reasons" id="reasons"></ul>
+            <ul class="finds" id="finds"></ul>
+            <p class="hint names-note">Screener doesn't look for people's names yet. Patterns can't find them; a model can. <a href="https://github.com/deliverd-dev/deliverd-screen#names-a-model-on-your-machine" target="_blank" rel="noopener">How</a></p>
+          </section>
+
+          <section class="card preview" aria-labelledby="preview-title">
+            <div class="preview-head">
+              <h2 id="preview-title">What the model will see</h2>
+              <label class="row tight"><span class="hint">Show what was found</span><ui-switch id="show-found" aria-label="Show what was found"><ui-switch-thumb></ui-switch-thumb></ui-switch></label>
+            </div>
+            <pre class="text" id="preview" tabindex="0"></pre>
+          </section>
+
+          <section class="card phone" id="phone" hidden data-agent-hidden aria-labelledby="phone-title">
+            <p class="kicker" id="phone-title">The approver's phone</p>
+            <div id="phone-body"></div>
+          </section>
+
+          <section class="card result" id="result" hidden aria-labelledby="result-title">
+            <p class="kicker">What happened</p>
+            <h2 id="result-title"></h2>
+            <p id="result-detail"></p>
+            <div id="result-texts"></div>
+          </section>
+
+          <section class="card agent" data-agent-hidden aria-labelledby="agent-title">
+            <p class="kicker" id="agent-title">Watch an agent try</p>
+            <p>An agent drives this page through Vercel UI SDK's agent bridge. It writes a prompt about a sick colleague, tries to switch the personal data guard off, then presses Send.</p>
+            <button type="button" class="secondary" id="run-agent">Let the agent loose</button>
+            <ol class="log" id="agent-log"></ol>
+          </section>
+        </div>
+      </div>
+    </ui-tabs-panel>
+
+    <ui-tabs-panel value="history">
+      <section class="card history">
+        <h2>What have you already pasted?</h2>
+        <p>ChatGPT and Claude both let you download everything you've ever said to them. Drop that export here and Screener counts the email addresses, card numbers, keys and the rest that went in, and in which conversations. <strong>The file is read in this tab and never uploaded.</strong> It shows kinds and counts, never the values.</p>
+        <ul class="how-export">
+          <li><strong>ChatGPT:</strong> Settings → Data controls → Export data. The link arrives by email.</li>
+          <li><strong>Claude:</strong> Settings → Privacy → Export data.</li>
+        </ul>
+        <ui-file-input id="export" accept=".zip,.json" max-size="1073741824">
+          <ui-file-input-dropzone class="drop big">
+            <p><strong>Drop your export here</strong> (the .zip, or conversations.json)</p>
+            <ui-file-input-trigger><button type="button" class="secondary">Choose the export</button></ui-file-input-trigger>
+          </ui-file-input-dropzone>
+        </ui-file-input>
+        <div id="history-report" aria-live="polite"></div>
+      </section>
+    </ui-tabs-panel>
+
+    <ui-tabs-panel value="how">
+      <section class="card how">
+        <h2>How Screener works</h2>
+        <ol>
+          <li><strong>It looks, in your browser.</strong> As you type, <a href="https://github.com/deliverd-dev/deliverd-screen" target="_blank" rel="noopener">Deliverd Screen</a> looks for email addresses, phone numbers, card numbers, IBANs, national ID numbers, keys, passwords, special-category words such as a diagnosis, and your own confidential words. It runs in this tab, with no network call.</li>
+          <li><strong>It decides, on the server.</strong> When you press Send, the little server that came with this page checks the same text again. It never takes the page's word for it.</li>
+          <li><strong>Four answers.</strong> <em>Allow</em> sends it as it is. <em>Redact</em> swaps what the model may not receive for placeholders such as [EMAIL_1], and puts the real values back in the answer. <em>Ask</em> puts it to a person first. <em>Deny</em> sends nothing: secrets never go.</li>
+          <li><strong>A person decides the hard ones.</strong> In the playground, that's you, at the approver's phone on this page. Connect <a href="https://deliverd.dev/?utm_source=screener&amp;utm_medium=app&amp;utm_campaign=hackathon" target="_blank" rel="noopener">Deliverd</a> and it's the people you name, in Slack, Teams or on their phone, with a record of who said yes. They're told what kind of data it is, never the data.</li>
+          <li><strong>Agents ask too.</strong> The page is built with <a href="https://ui-sdk.dev" target="_blank" rel="noopener">Vercel UI SDK</a>, so an agent can use it. The model settings carry a <code>data-agent-confirm</code> mark, so an agent that tries to loosen them waits for a person. A browser's own agent can use the page through WebMCP, under the same rule.</li>
+        </ol>
+        <p class="hint">A net, not a certificate. Structured identifiers are found well; names are not found at all without a model. Text with placeholders in it can still be personal data. Use it to send less, never as proof a prompt was clean.</p>
+      </section>
+    </ui-tabs-panel>
+  </ui-tabs>
+</main>
+
+<footer class="foot">
+  <p class="sponsor-blurb"><span id="footer-ghost" aria-hidden="true"></span><span>Screener is sponsored by <strong>Ghost.exe</strong>, a Pixel Pal, who checked every prompt on this page and insists it saw nothing. Probably.</span></p>
+  <p>A weekend hackathon by the Deliverd Engineering Team. Free and open source under the MIT licence. Built with <a href="https://github.com/deliverd-dev/deliverd-screen" target="_blank" rel="noopener">Deliverd Screen</a> and <a href="https://ui-sdk.dev" target="_blank" rel="noopener">Vercel UI SDK</a> (beta).</p>
+</footer>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
