@@ -24,7 +24,9 @@ and [Vercel UI SDK](https://ui-sdk.dev).
 
 **Try it now at [screener.deliverd.dev](https://screener.deliverd.dev)**: the hosted demo runs entirely in
 your browser, with a pretend model and you as the approver. Nothing you type
-leaves the tab.
+leaves the tab. The hosted demo counts page visits with
+[Vercel Web Analytics](https://vercel.com/docs/analytics/privacy-policy) (no cookies,
+no prompts, files or answers); copies you run yourself load no analytics at all.
 
 ## Do I need a model?
 

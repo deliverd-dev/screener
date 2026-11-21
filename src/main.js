@@ -15,6 +15,7 @@ import { readExportFile, scanHistory } from "./history.js";
 import { AGENT_PROMPT, SAMPLES } from "./samples.js";
 import { DEMO_CONFIG, demoFetch } from "./demo.js";
 import { createGhost } from "./haunt.js";
+import { inject as injectAnalytics } from "@vercel/analytics";
 import { renderStats, setWiring, stats } from "./showcase.js";
 
 const $ = (selector) => document.querySelector(selector);
@@ -561,6 +562,9 @@ async function start() {
     api = demoFetch();
     state.config = DEMO_CONFIG;
     $("#demo-note").hidden = false;
+    // Page views only, on the hosted demo: Vercel Web Analytics, no cookies.
+    // Nothing you type, drop or send is part of it. Copies you run yourself load none.
+    if (location.hostname === "screener.deliverd.dev") injectAnalytics();
   }
   const { mode, model } = state.config;
   $("#mode-pill").textContent =
